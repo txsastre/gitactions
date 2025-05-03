@@ -1,8 +1,12 @@
-name: Build and Deploy to Docker Hub and k3s
+name: Build and Deploy
 
 on:
   push:
     branches: [ main ]
+    paths: 
+      - 'Dockerfile'    # Se activa al cambiar Dockerfile
+      - 'src/**'        # o archivos en src/
+      - 'k8s/**'        # o manifiestos de k8s
 
 env:
   DOCKER_HUB_REPO: tu-usuario-dockerhub/tu-repo
