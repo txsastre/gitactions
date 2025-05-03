@@ -1,0 +1,42 @@
+name: Build and Deploy to Docker Hub and k3s
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  DOCKER_HUB_REPO: tu-usuario-dockerhub/tu-repo
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Login to Docker Hub
+      run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
+
+    - name: Build and push Docker image
+      run: |
+        docker build -t ${{ env.DOCKER_HUB_REPO }}:latest .
+        docker push ${{ env.DOCKER_HUB_REPO }}:latest
+
+  deploy-to-k3s:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install kubectl
+      run: |
+        curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+        sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+    - name: Configure kubeconfig
+      run: |
+        echo "${{ secrets.KUBE_CONFIG }}" > kubeconfig.yaml
+        export KUBECONFIG=./kubeconfig.yaml
+
+    - name: Deploy to k3s cluster
+      run: |
+        kubectl apply -f k8s/deployment.yaml
